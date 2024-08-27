@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "my-app.fullname" . }}-slo-creation
+  labels:
+    {{- include "my-app.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ include "my-app.fullname" . }}-slo-creation
+      labels:
+        {{- include "my-app.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: slo-creator
+          image: curlimages/curl:7.81.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              curl -X POST {{ .Values.elasticSearch.host }}/api/observability/slos \
+                -H "Content-Type: application/json" \
+                -H "kbn-xsrf: true" \
+                -u {{ .Values.elasticSearch.username }}:{{ .Values.elasticSearch.password }} \
+                -d '{
+                  "budgetingMethod": "occurrences",
+                  "description": "Flux HELM based SLO",
+                  "groupBy": "some.field",
+                  "id": "my-super-slo-id",
+                  "indicator": {
+                    "params": {
+                      "filter": "field.environment : \"production\" and service.name : \"my-service\"",
+                      "good": "request.latency <= 150 and request.status_code : \"2xx\"",
+                      "index": "my-service-*",
+                      "timestampField": "timestamp",
+                      "total": "field.environment : \"production\" and service.name : \"my-service\""
+                    },
+                    "type": "sli.kql.custom"
+                  },
+                  "name": "Flux SLO",
+                  "objective": {
+                    "target": 0.99,
+                    "timesliceTarget": 0.995,
+                    "timesliceWindow": "5m"
+                  },
+                  "settings": {
+                    "frequency": "5m",
+                    "syncDelay": "5m"
+                  },
+                  "tags": [
+                    "string"
+                  ],
+                  "timeWindow": {
+                    "duration": "30d",
+                    "type": "rolling"
+                  }
+                }'

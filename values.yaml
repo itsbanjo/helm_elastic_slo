@@ -1,0 +1,13 @@
+replicaCount: 1
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+customerName: "Default Customer"
+elasticSearch:
+  host: "http://elasticsearch-master:9200"
+  username: "elastic"
+  password: "changeme"
