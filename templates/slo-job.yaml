@@ -26,7 +26,7 @@ spec:
               curl -X POST {{ .Values.elasticSearch.host }}/api/observability/slos \
                 -H "Content-Type: application/json" \
                 -H "kbn-xsrf: true" \
-                -u {{ .Values.elasticSearch.username }}:{{ .Values.elasticSearch.password }} \
+                -H "Authorization: ApiKey {{ .Values.elasticSearch.apiKey }}" \
                 -d '{
                   "budgetingMethod": "occurrences",
                   "description": "Flux HELM based SLO",
